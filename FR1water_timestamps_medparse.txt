@@ -1,0 +1,59 @@
+\ Program for FR1
+\ using medparse python package
+
+\Inputs
+^LeftLever = 1
+
+\Outputs
+^LeftLever = 1 \our levers are retractable, so they must also have an output function
+^Houselight  = 7
+^Reinforcer = 4 \4 is the water dipper 3 is the pellet dispenser
+^TopLeverLight = 5
+
+\Variables
+    \A() = Array for time coded events
+    \D = time in minutes
+    \L = left lever response count
+    \R = # of rewards received
+    \U = session start timer
+    \Y = index of timestamp events into data array A 
+
+DIM A = 9999
+DISKVARS = A,D,L,R,U,Y
+
+S.S.1,\Timer
+S1,
+     #START: SET U=BTIME, Y=0; ---> S2
+S2,
+     1': ADD D; ---> SX
+
+S.S.2, \Main control logic for FR
+S1,
+     #START: ON ^HouseLight ---> S2 \houselight is ALWAYS on
+
+S2,
+    0.01": ON ^LeftLever ---> S3 \left lever is ALWAYS out
+
+S3, \Reinforcer counter, Z-Pulse is acting as an output
+    1#R^LeftLever: ADD R; SHOW 2,Reinforcers,R; Z1 ---> SX \count 1 response for every 1 lever press
+
+
+S.S.3, \Response counter (lever press counter)
+S1,
+    #START: SHOW 1,Left Response,L ---> S2
+S2,
+    #R^LeftLever: ADD L; SHOW 1,Left Response,L ---> SX
+S3,
+    #R^LeftLever: SET A(Y) = BTIME-U; ADD Y; ---> SX
+
+S.S.4, \Reinforcer Timer
+S1, \Z-Pulse acting as an input
+    #Z1: ON ^Reinforcer ---> S2
+S2,
+    6": OFF ^Reinforcer ---> S1 \Everytime a z pulse is received after every lever press raise the water dipper for 6 seconds, this may not be enough for the little ones. Needs testing.
+
+S.S.5, \Session Timer
+S1,
+    #START: SET U = BTIME/1000 ---> S2
+S2,
+    60': ---> STOPSAVE
